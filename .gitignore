@@ -1,12 +1,12 @@
 # Prerequisites
 *.d
-
+build
 # Object files
 *.o
 *.ko
 *.obj
 *.elf
-
+.vscode
 # Linker output
 *.ilk
 *.map
