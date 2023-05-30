@@ -23,5 +23,8 @@ void insert(int key, int value, LinkedList * list);
 
 int get(int key, LinkedList *list);
 size_t count(LinkedList *list);
+void del(int key, LinkedList * list);
+int* iterate(LinkedList* list);
+
 #endif
 
