@@ -3,9 +3,9 @@
 
 
 
-
 void insert(int key, int value, LinkedList *list)
 {
+    if(value == -1) return;
     pthread_mutex_lock(&list->mutex);
     Node *curr = list->head;
     while (curr->next != NULL)
@@ -24,6 +24,7 @@ void insert(int key, int value, LinkedList *list)
     new_node->value = value;
     new_node->next = NULL;
     curr->next = new_node;
+    pthread_cond_signal(&list->new_item);
     pthread_mutex_unlock(&list->mutex);
 }
 
@@ -99,4 +100,18 @@ int* iterate(LinkedList* list)
     pthread_mutex_unlock(&list->mutex);
     return keys;
 
+}
+
+
+int poll(int key, LinkedList * list)
+{
+    int value = get(key, list);
+    pthread_mutex_lock(&list->mutex);
+    while (value == -1)
+    {
+        pthread_cond_wait(&list->new_item,&list->mutex);
+        value = get(key, list);
+    }
+    pthread_mutex_unlock(&list->mutex);
+    return value;
 }
