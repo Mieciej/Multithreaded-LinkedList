@@ -35,6 +35,7 @@ void del(int key, LinkedList * list);
 int* iterate(LinkedList* list);
 
 
+// Request value of a given key, and wait until it apears in the list. 
 int poll(int key, LinkedList * list);
 
 #endif

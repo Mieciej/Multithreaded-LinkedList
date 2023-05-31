@@ -44,7 +44,6 @@ int get(int key, LinkedList *list)
     }
     pthread_mutex_unlock(&list->mutex);
 
-    fprintf(stderr,"Failed to get key: %d\n", key);
     return -1;
     
 }
@@ -86,19 +85,21 @@ void del(int key, LinkedList * list)
 
 int* iterate(LinkedList* list)
 {
-    size_t n = 0;
-    int * keys = malloc(0);
     pthread_mutex_lock(&list->mutex);
+    size_t size = count(list);
+    int * key_val_pairs = malloc((size*2+1)*(sizeof(int)));
+    key_val_pairs[0] = size; 
     Node * curr = list->head;
+    size_t n = 0;
     while (curr->next!=NULL)
     {
-        n++;
-        keys = realloc(keys,sizeof(int)*n);
-        keys[n-1] = curr->next->key; 
+        key_val_pairs[n+1] = curr->next->key;
+        key_val_pairs[size+n+1] = curr->next->value;
         curr = curr->next;
+        n++;
     }
     pthread_mutex_unlock(&list->mutex);
-    return keys;
+    return key_val_pairs;
 
 }
 
