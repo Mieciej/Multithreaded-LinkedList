@@ -45,10 +45,8 @@ void start_iteration(LinkedList *list);
 // Close iteration by a thread
 void end_iteration(LinkedList *list);
 
-// Deallocate list.
-void free_list(LinkedList *list);
 
-// Initialise list.
+// Initialise the list.
 LinkedList * initialise_list();
 #endif
 

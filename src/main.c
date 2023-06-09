@@ -58,9 +58,10 @@ void * test_remove(void * arg)
     return NULL;
 }
 
+
+
 void * test_poll(void * arg)
 {
-
     while(!stopFlag)
     {
         sleep(5);
@@ -77,7 +78,6 @@ void * test_poll(void * arg)
 
 int main(int argc, char const *argv[])
 {
-    signal(SIGINT, ctrlC);
     LinkedList * list = initialise_list();
     pthread_t t[5];
     pthread_create(&t[0],NULL,test_add,(void*)list);
@@ -86,12 +86,19 @@ int main(int argc, char const *argv[])
     pthread_create(&t[3],NULL,test_poll,(void*)list);
     pthread_create(&t[4],NULL,test_poll,(void*)list);
 
+    signal(SIGINT, ctrlC); 
+    while (!stopFlag);
 
+    // to unlock any stuck poll()
+    for (size_t i = MIN_KEY; i < MAX_KEY; i++)
+    {
+        insert(i,0,list);
+    }
+    
     for (size_t i = 0; i < 5; i++)
     {
         pthread_join(t[i], NULL);
     }
-    free_list(list);
     return 0;
 }
 

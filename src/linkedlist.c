@@ -150,18 +150,7 @@ Node* next(LinkedList *list)
 }
 
 
-void free_list(LinkedList *list)
-{
-    start_iteration(list);
-    Node * curr;
-    while ((curr = next(list))!=NULL)
-    {
-        free(curr);
-    }
-    end_iteration(list);   
-    free(list->head);
-    free(list);
-}
+
 
 LinkedList * initialise_list()
 {
