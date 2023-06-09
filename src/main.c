@@ -2,23 +2,21 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <unistd.h>
-
-#define MIN_KEY  -300
-#define MAX_KEY  1000
+#include <signal.h>
+#define MIN_KEY  0
+#define MAX_KEY  10
 #define MAX_VAL 100
 
-void print_array(int* array, size_t size)
-{
-    for (size_t i = 0; i < size; i++)
-    {
-        printf("%d ",array[i]);
-    }
-    printf("\n");
-}
+
+volatile sig_atomic_t stopFlag = 0;
+void ctrlC(int num) { stopFlag = 1; }
+
+
+
 
 void * test_add(void * arg)
 {
-    while(1)
+    while(!stopFlag)
     {
         srand(clock());
         int key = (rand() % (MIN_KEY+MAX_KEY)) + MIN_KEY;
@@ -30,23 +28,27 @@ void * test_add(void * arg)
 }
 void * test_iterate(void * arg)
 {
-    while(1)
+    LinkedList *list = (LinkedList*)arg;
+    while(!stopFlag)
     {
         sleep(5);
-        int * key_value = iterate((LinkedList*)arg);
-        for (size_t i = 0; i < key_value[0]; i++)
+        start_iteration(list);
+        Node * curr;
+        while ((curr = next(list))!=NULL)
         {
-            printf("(%d, %d)  ",key_value[i+1],key_value[i+1+key_value[0]]);
+            printf("(%d, %d)  ",curr->key,curr->value);
         }
         printf("\n");
-        free(key_value);
+
+        end_iteration(list);
+        
     }
     
     return NULL;
 }
 void * test_remove(void * arg)
 {
-    while(1)
+    while(!stopFlag)
     {
         srand(clock());
         int key = (rand() % (MIN_KEY+MAX_KEY)) + MIN_KEY;
@@ -58,7 +60,8 @@ void * test_remove(void * arg)
 
 void * test_poll(void * arg)
 {
-    while(1)
+
+    while(!stopFlag)
     {
         sleep(5);
         srand(clock());
@@ -70,31 +73,25 @@ void * test_poll(void * arg)
     
     return NULL;
 }
+
+
 int main(int argc, char const *argv[])
 {
-    LinkedList list = {0};
-    Node head = {.key = 0, .value=0, .next = NULL};
-    list.head =&head;
-    list.new_item = (pthread_cond_t)PTHREAD_COND_INITIALIZER; 
-    pthread_mutexattr_t attr;
-    pthread_mutexattr_t recursiveAttrs;
-    pthread_mutexattr_init(&recursiveAttrs);
-    pthread_mutexattr_settype(&recursiveAttrs, PTHREAD_MUTEX_RECURSIVE);
-
-    pthread_mutex_init(&list.mutex, &recursiveAttrs);
-    pthread_t t[4];
-
-    pthread_create(&t[0],NULL,test_add,(void*)&list);
-    pthread_create(&t[1],NULL,test_iterate,(void*)&list);
-    pthread_create(&t[2],NULL,test_remove,(void*)&list);
-    pthread_create(&t[3],NULL,test_poll,(void*)&list);
+    signal(SIGINT, ctrlC);
+    LinkedList * list = initialise_list();
+    pthread_t t[5];
+    pthread_create(&t[0],NULL,test_add,(void*)list);
+    pthread_create(&t[1],NULL,test_iterate,(void*)list);
+    pthread_create(&t[2],NULL,test_remove,(void*)list);
+    pthread_create(&t[3],NULL,test_poll,(void*)list);
+    pthread_create(&t[4],NULL,test_poll,(void*)list);
 
 
-    for (size_t i = 0; i < 4; i++)
+    for (size_t i = 0; i < 5; i++)
     {
         pthread_join(t[i], NULL);
     }
-    
+    free_list(list);
     return 0;
 }
 

@@ -24,7 +24,7 @@ void insert(int key, int value, LinkedList *list)
     new_node->value = value;
     new_node->next = NULL;
     curr->next = new_node;
-    pthread_cond_signal(&list->new_item);
+    pthread_cond_broadcast(&list->new_item);
     pthread_mutex_unlock(&list->mutex);
 }
 
@@ -83,25 +83,7 @@ void del(int key, LinkedList * list)
 }
 
 
-int* iterate(LinkedList* list)
-{
-    pthread_mutex_lock(&list->mutex);
-    size_t size = count(list);
-    int * key_val_pairs = malloc((size*2+1)*(sizeof(int)));
-    key_val_pairs[0] = size; 
-    Node * curr = list->head;
-    size_t n = 0;
-    while (curr->next!=NULL)
-    {
-        key_val_pairs[n+1] = curr->next->key;
-        key_val_pairs[size+n+1] = curr->next->value;
-        curr = curr->next;
-        n++;
-    }
-    pthread_mutex_unlock(&list->mutex);
-    return key_val_pairs;
 
-}
 
 
 int poll(int key, LinkedList * list)
@@ -115,4 +97,86 @@ int poll(int key, LinkedList * list)
     }
     pthread_mutex_unlock(&list->mutex);
     return value;
+}
+
+
+
+void start_iteration(LinkedList *list)
+{
+    pthread_mutex_lock(&list->mutex);
+    pthread_mutex_lock(&list->iterator_mutex);
+    list->iterator = list->head;
+}
+void end_iteration(LinkedList *list)
+{
+    list->iterator = NULL;
+    int e = pthread_mutex_unlock(&list->iterator_mutex);
+    if(e!=0)
+    {
+        fprintf(stderr,"Invalid end_iteration usage.\n");
+
+        exit(0);
+    }
+    e = pthread_mutex_unlock(&list->mutex);
+    if(e!=0)
+    {
+        fprintf(stderr,"Invalid end_iteration usage.\n");
+        exit(0);
+    }
+}
+Node* next(LinkedList *list)
+{
+    // fail safe measures
+    int invalid = 0;
+    pthread_mutex_lock(&list->mutex);
+    pthread_mutex_lock(&list->iterator_mutex);
+
+    if(list->iterator == NULL)
+    {
+        fprintf(stderr,"Invalid usage of next() function. Did not use start_iteration()\n");
+        invalid = 1;
+        start_iteration(list);
+    }
+    Node *next = list->iterator->next;
+    list->iterator = next;
+    if(invalid)
+    {
+        end_iteration(list);
+    }
+    pthread_mutex_unlock(&list->iterator_mutex);
+    pthread_mutex_unlock(&list->mutex);
+
+    return next;
+}
+
+
+void free_list(LinkedList *list)
+{
+    start_iteration(list);
+    Node * curr;
+    while ((curr = next(list))!=NULL)
+    {
+        free(curr);
+    }
+    end_iteration(list);   
+    free(list->head);
+    free(list);
+}
+
+LinkedList * initialise_list()
+{
+    LinkedList * list = malloc(sizeof(LinkedList));
+    Node * head = malloc(sizeof(Node));
+    head->key = 0 ;
+    head->next=0;
+    head->next =NULL;
+    list->head =head;
+    list->new_item = (pthread_cond_t)PTHREAD_COND_INITIALIZER; 
+    pthread_mutexattr_t recursiveAttrs;
+    pthread_mutexattr_init(&recursiveAttrs);
+    pthread_mutexattr_settype(&recursiveAttrs, PTHREAD_MUTEX_RECURSIVE);
+
+    pthread_mutex_init(&list->mutex, &recursiveAttrs);
+    pthread_mutex_init(&list->iterator_mutex, &recursiveAttrs);
+    return list;
 }
